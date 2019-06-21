@@ -1,0 +1,14 @@
+{% extends "iris/base.html" %}
+{% load static %}
+{% block content %}
+
+There are {{ iris_list.count }} objects that were returned<br><br>
+
+<ul>
+    {% for iris in iris_list.classifications %}
+        <li>{{ iris.classification }} --> {{ iris.classification__count }}</li>
+    {% endfor %}
+</ul>
+
+<img src="{% static 'all_iris.jpg' %}" height="200px">
+{% endblock %}

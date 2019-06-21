@@ -1,0 +1,11 @@
+{% extends "iris/base.html" %}
+{% block content %}
+<h2>Update an Iris</h2>
+
+<form method="post">{% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Update">
+</form>
+
+
+{% endblock content %}

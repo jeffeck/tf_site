@@ -1,0 +1,28 @@
+{% extends "iris/base.html" %}
+{% load static %}
+{% block content %}
+
+<h2>{{ iris.classification }}</h2>
+
+<ul>
+    <li>Sepal Width: {{ iris.sepal_width }}</li>
+    <li>Sepal Length: {{ iris.sepal_length }}</li>
+    <li>Petal Width: {{ iris.petal_width }}</li>
+    <li>Petal Length: {{ iris.petal_length }}</li>
+</ul>
+
+<!-- Conditional logic can be applied -->
+{% if iris.classification == 'Iris-virginica' %}
+<img height=200px src="{% static 'Iris-virginica.jpg' %}">
+{% elif iris.classification == "Iris-setosa" %}
+<img height=200px src="{% static 'Iris-setosa.jpg' %}">
+{% elif iris.classification == "Iris-versicolor" %}
+<img height=200px src="{% static 'Iris-versicolor.jpg' %}">
+{% endif %}
+
+<!-- Or a more elegant solution with naming scheme -->
+<!-- <img height='200px' src="{% static iris.classification|add:'.jpg' %}"> -->
+
+<img height=200px src="{% static 'versicolor_2.jpg' %}">
+
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "iris/base.html" %}
+
+{% block script %}
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script>
+
+    $("#file_list .card").click(function () {
+        // get the filename from the html element
+        filename= $(this)[0].innerText;
+
+        // save the destiination to put the results into
+        dest = "#";
+        dest += $(this).children().last().attr("id");
+
+        // ajax call
+        // TODO: remove the html generation from ajax and do in template?
+        $.ajax({
+            // url is in iris/urls.py and identifies the function to use
+            url: '/iris/browse/ajax/file/',
+            // the associated function needs a filename to return the contents
+            data: {
+                'filename': filename
+            },
+            dataType: 'json',
+            // what happens on successful retrieval
+            // result is the json response object from the functions
+            success: function(result) {
+                // first_row is a variable in the result object
+                header = result.first_row;
+
+                // write the html to be inserted into page
+                let rows = '<h2>Columns in file:</h2><ul>';
+                header.forEach(function(element) {
+                    rows += "<li>" + element + "</li>";
+                });
+                rows += '</ul>';
+
+                // clear and insert the generated code into the destination
+                $(dest).empty().append(rows);
+            },
+            // error message is firing if the same element is being clicked twice in a row
+            // TODO: robust error handling, currently ignoring error 
+            error: function(status, exception) {
+                // alert('error message fired')
+            }
+        });
+    });
+</script>
+
+{% endblock script %}
+
+
+{% block content %}
+<h1>Files</h1>
+
+<div class="accordion" id="file_list">
+    {% for file in files %}
+    <div class="card">
+        <div class="card-header" id="heading_{{ forloop.counter }}">
+            <h2 class="mb-0">
+                <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapse_{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse_{{ forloop.counter }}">
+                {{ file }}
+                </button>
+            </h2>
+        </div>
+        <div id="collapse_{{ forloop.counter }}" class="collapse" aria-labelledby="heading_{{ forloop.counter }}" data-parent="#file_list">
+            <div class="card-body" id="contents">
+                placeholder
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+
+</div>
+
+
+
+
+{% endblock content %}

@@ -1,0 +1,53 @@
+{% extends "iris/base.html" %}
+
+{% block stylesheet %}
+<style type="text/css">
+    ul { 
+        list-style: none;
+    }
+</style>
+{% endblock stylesheet %}
+
+
+
+{% block script %}
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script>
+
+$(document).ready(function() {
+    var conditional_fields = $("#id_action");
+    var lbl = $('p label[for="id_action_0"]');
+
+    lbl.hide();
+    conditional_fields.hide();
+
+    $("#id_load").click(function() {
+        // console.log('load clicked');
+        // console.log('checked: ', $(this).prop("checked"));
+        if ($(this).prop("checked")) {
+            conditional_fields.show();
+        } else {
+            conditional_fields.hide();
+        }
+    });
+
+});
+
+
+</script>
+{% endblock script %}
+
+
+
+
+{% block content %}
+
+<h2>Upload template</h2>
+
+<form action="/iris/upload/" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Upload">
+</form>
+
+{% endblock %}
