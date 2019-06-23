@@ -2,13 +2,40 @@ import os
 
 from django import forms 
 from django.contrib import messages
-from django.db.models import Count 
+from django.db.models import Avg, Count, Max, Min, StdDev, Sum, Variance
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.views import generic
 
 from .forms import IrisEditForm, NameForm, UploadFileForm #, ModelFormWithFileField
 from .models import Iris
+
+def counts_by_class():
+    """
+    Retrieves all objects from the model and provides a count for each classification
+    """
+    return Iris.objects.values('classification').annotate(Count('classification'))
+
+#TODO:
+#   mean
+#   median
+#   mode
+#   range
+#   variance
+
+def avg_by_class(field):
+    """
+    Retrieves all objects from the model and provides the average for each classification
+    """
+    # TODO: standardize formatting (number of decimals)
+    return Iris.objects.values('classification').annotate(avg=Avg(field), 
+                                                          count=Count(field), 
+                                                          max=Max(field), 
+                                                          min=Min(field), 
+                                                          stddev=StdDev(field), 
+                                                          sum=Sum(field), 
+                                                          variance=Variance(field),
+                                                         )
 
 class IndexView(generic.ListView): 
     template_name = 'iris/index.html'
@@ -17,10 +44,16 @@ class IndexView(generic.ListView):
     def get_queryset(self): 
         context = {
             'count': Iris.objects.all().count(),
-            'classifications': Iris.objects.values('classification').annotate(Count('classification')),
-            'one': 1, 
-            'two': 2,
+            'classifications': counts_by_class(),
+            'attributes': {
+                'sepal_length': avg_by_class('sepal_length'),
+                'sepal_width': avg_by_class('sepal_width'),
+                'petal_length': avg_by_class('petal_length'),
+                'petal_width': avg_by_class('petal_width'),
+            }
         }
+        
+
         return context
 
 class DetailView(generic.DetailView): 

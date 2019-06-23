@@ -1,5 +1,9 @@
 {% extends "iris/base.html" %}
 {% load static %}
+{% load math %}
+
+
+
 {% block content %}
 
 There are {{ iris_list.count }} objects that were returned<br><br>
@@ -10,5 +14,55 @@ There are {{ iris_list.count }} objects that were returned<br><br>
     {% endfor %}
 </ul>
 
-<img src="{% static 'all_iris.jpg' %}" height="200px">
+<img src="{% static 'all_iris.jpg' %}" height="200px"><br>
+
+
+ <!-- [Count, classifications, attributes] -->
+{% for key, value in iris_list.items %}
+
+    <!-- Attributes is a nested dict and needs to be looped -->
+    {% if key  == "attributes" %}
+
+        <!-- k = [sepel_length, sepal_width, petal_length, petal_width] -->
+        {% for k, val in value.items %}
+            <h3>{{ k }}</h3>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Classification</th>
+                        <th scope="col">Count</th>
+                        <th scope="col">Sum</th>
+                        <th scope="col">Average</th>
+                        <th scope="col">StdDev</th>
+                        <th scope="col">Variance</th>
+                        <th scope="col">Min</th>
+                        <th scope="col">Max</th>
+                        <th scope="col">Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                <!-- [classification, avg, count, max, min, stddev, sum, variance] -->
+                {% for v in val %}
+                    <tr>
+                        <th scope="row">{{ v.classification }}</th>
+                        <td>{{ v.count }}</td>
+                        <td>{{ v.sum|stringformat:'1.2f' }}</td>
+                        <td>{{ v.avg|stringformat:'1.2f' }}</td>
+                        <td>{{ v.stddev|stringformat:'1.2f' }}</td>
+                        <td>{{ v.variance|stringformat:'1.2f' }}</td>
+                        <td>{{ v.min }}</td>
+                        <td>{{ v.max }}</td>
+                        <td>{{ v.max|subtract:v.min|stringformat:'1.2f' }}</td>
+                    </tr>
+
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% endif %}
+
+{% endfor %}
+
 {% endblock %}
