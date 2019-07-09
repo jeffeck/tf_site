@@ -18,8 +18,12 @@ from django.urls import include, path
 
 from iris import views as iris_views
 
+
 urlpatterns = [
-    path('', iris_views.index, name="index"),
+    path('', iris_views.IndexView.as_view(), name="index"),
     path('iris/', include('iris.urls')),
     path('admin/', admin.site.urls),
+    path('api-auth/', include('rest_framework.urls')),
 ]
+
+

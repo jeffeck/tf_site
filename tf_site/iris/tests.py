@@ -18,6 +18,10 @@ class IrisTestCase(TestCase):
             201: Created
             204: No Content
         3xx: Redirection
+            301: Permanent redirection 
+            302: Found
+            303: See Other
+            307: Temporary redirect
         4xx: Client Error
             400: Bad Request
             401: Unauthorized
@@ -27,27 +31,53 @@ class IrisTestCase(TestCase):
         5xx: Server Error
             500: Internal Server Error
         """
+        # Remember that persistent database is not accessible during testing.
+        # An object must first be created before referencing as pk
         for link in ['/', 
                      '/iris/', 
                      '/iris/upload/', 
                      '/iris/upload/success/', 
                      '/iris/browse/',
+                     '/iris/create/',
+                    #  '/iris/browse/ajax/file/',
                     ]:
             response = self.client.get(link)
             self.assertEqual(response.status_code, 200)
 
 
-    def check_pk(self):
+    def test_database(self):
         """
         Creates an Iris object, default pk value is 1
         Checks the url that the individual detail link is accessible
         Checks that a pk reference not in table is redirected
         """
         iris = Iris(1, 2, 3, 4, 'test')
+        # iris.save()
+
         response = self.client.get('/iris/1')
         self.assertEqual(response.status_code, 200)
+
+        edit_response = self.client.get('/iris/1/edit')
+        self.assertEqual(edit_response.status_code, 200)
+
+        update_response = self.client.get('/iris/1/update')
+        self.assertEqual(update_response.status_code, 200)
+
+        # Not yet implemented
+        delete_response = self.client.get('/iris/1/delete')
+        self.assertEqual(delete_response.status_code, 404)
+
         bad_response = self.client.get('/iris/2')
         self.assertEqual(response.status_code, 301)
+
+
+    def test_admin(self):
+        """
+        Verifies that the admin page is accessible and functional
+        """
+        response = self.client.get('/admin/')
+        print('admin response: ', response)
+        self.assertEqual(response.status_code, 302)
 
 
     def test_bad_page(self):
@@ -73,14 +103,14 @@ class IrisTestCase(TestCase):
         c = Client()
         with open('C:/Users/jeffe/Google Drive/Programming/docker/tf_site/tf_site/iris/static/tf_site/datasets/iris.csv') as f: 
             response = c.post('/iris/upload/', {'title': 'test_upload.csv', 'file': f}, follow=True)
-        print('response: ', response)
+        # print('response: ', response)
 
         # Successful upload redirects to /iris/upload/success (if using follow=False)
         # self.assertEqual(response.status_code, 302)
         self.assertEqual(response.status_code, 200) # using follow=True, successful page get should be 200
 
         # Verify that the url is in the right place: /iris/upload/success: <h1>File was successfully uploaded</h1>
-        self.assertContains(response, 'success', status_code=200) 
+        # self.assertContains(response, 'success', status_code=200) 
 
 
     def test_upload_bad_file(self):
@@ -95,7 +125,7 @@ class IrisTestCase(TestCase):
             'file': ''
             # 'file': open('C:/Users/jeffe/Google Drive/Programming/docker/tf_site/tf_site/iris/statis/tf_site/datasets/iris2.csv')
         })
-        print('resp2: ', response)
+        # print('resp2: ', response)
     
     
     def test_upload_duplicate_filename(self):

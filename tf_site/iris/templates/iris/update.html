@@ -1,12 +1,73 @@
 {% extends "iris/base.html" %}
+{% load static %}
+{% block script %}
+<script>
+    $(document).ready( function () {
+        $("form").hide();
+    });
+
+    $("#id_id").change(function () {
+        input_value = this.value;
+
+        // ajax call
+        $.ajax({
+            url: '/iris/ajax/',
+            data: {
+                'pk': input_value
+            },
+            dataType: 'json',
+            success: function(result) {
+                $("form").show();
+                $("#id_petal_width").val(result.petal_width);
+                $("#id_petal_length").val(result.petal_length);
+                $("#id_sepal_width").val(result.sepal_width);
+                $("#id_sepal_length").val(result.sepal_length);
+                $("#id_classification").val(result.classification);
+
+
+                image_path = result.classification + ".jpg";
+
+                console.log('result.classification: ', image_path);
+                if (result.classification == "Iris-setosa") {
+                    $("img").attr('src', "{% static 'Iris-setosa.jpg' %}");
+                } else if (result.classification == "Iris-virginica") {
+                    $("img").attr("src", "{% static 'Iris-virginica.jpg' %}");
+                } else if (result.classification == "Iris-versicolor") {
+                    $("img").attr("src", "{% static 'Iris-versicolor.jpg' %}");
+                }
+
+                // $(image_path).insertAfter("form");
+    
+                // console.log(image_path);
+
+                // $("<img height=200px src={ static " + result.classification + ".jpg }").insertAfter("form");
+
+            },
+            error: function(status, exception) {
+                // alert('error message fired')
+            }
+        });
+
+    });
+
+</script>
+
+{% endblock script %}
+
+
+
 {% block content %}
 
 <h1>Update page</h1>
 
+<p><label for="id_id">Id:</label> <input type="number" name="id" required id="id_id"></p>
+
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <input type="submit" value="Update">
+    <!-- <input type="submit" value="Update"> -->
 </form>
+
+<img height=200px src="">
 
 {% endblock %}

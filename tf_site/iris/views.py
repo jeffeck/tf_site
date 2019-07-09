@@ -2,40 +2,27 @@ import os
 
 from django import forms 
 from django.contrib import messages
-from django.db.models import Avg, Count, Max, Min, StdDev, Sum, Variance
+from django.contrib.messages.views import SuccessMessageMixin
+# from django.db.models import Avg, Count, Max, Min, StdDev, Sum, Variance
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render
 from django.views import generic
 
-from .forms import IrisEditForm, NameForm, UploadFileForm #, ModelFormWithFileField
+from rest_framework import viewsets, permissions
+
+from .forms import IrisEditForm, IrisKeyForm, UploadFileForm #, ModelFormWithFileField
 from .models import Iris
+from .serializers import IrisSerializer
+from .orm import avg_by_class, counts_by_class
 
-def counts_by_class():
-    """
-    Retrieves all objects from the model and provides a count for each classification
-    """
-    return Iris.objects.values('classification').annotate(Count('classification'))
 
-#TODO:
-#   mean
-#   median
-#   mode
-#   range
-#   variance
+#API
+class IrisView(viewsets.ModelViewSet):
+    queryset = Iris.objects.all()
+    serializer_class = IrisSerializer
+    permission_classes = (permissions.IsAuthenticated, )
 
-def avg_by_class(field):
-    """
-    Retrieves all objects from the model and provides the average for each classification
-    """
-    # TODO: standardize formatting (number of decimals)
-    return Iris.objects.values('classification').annotate(avg=Avg(field), 
-                                                          count=Count(field), 
-                                                          max=Max(field), 
-                                                          min=Min(field), 
-                                                          stddev=StdDev(field), 
-                                                          sum=Sum(field), 
-                                                          variance=Variance(field),
-                                                         )
+
 
 class IndexView(generic.ListView): 
     template_name = 'iris/index.html'
@@ -44,15 +31,14 @@ class IndexView(generic.ListView):
     def get_queryset(self): 
         context = {
             'count': Iris.objects.all().count(),
-            'classifications': counts_by_class(),
+            'classifications': counts_by_class(Iris),
             'attributes': {
-                'sepal_length': avg_by_class('sepal_length'),
-                'sepal_width': avg_by_class('sepal_width'),
-                'petal_length': avg_by_class('petal_length'),
-                'petal_width': avg_by_class('petal_width'),
+                'sepal_length': avg_by_class(Iris, 'sepal_length'),
+                'sepal_width': avg_by_class(Iris, 'sepal_width'),
+                'petal_length': avg_by_class(Iris, 'petal_length'),
+                'petal_width': avg_by_class(Iris, 'petal_width'),
             }
         }
-        
 
         return context
 
@@ -66,11 +52,15 @@ class DetailView(generic.DetailView):
         #     'Iriss': Iris.objects.all().first()
         # }
         # return context 
- 
-class UpdateView(generic.UpdateView):
-    model = Iris 
-    fields = {'petal_width', 'petal_length', }
-    template_name = 'iris/update.html',
+
+
+# class UpdateView(SuccessMessageMixin, generic.UpdateView):
+#     model = Iris 
+#     fields = {'petal_width', 'petal_length', }
+#     template_name = 'iris/update.html',
+#     success_url = '/iris/'
+#     success_message = 'Iris was successfully updated.'
+
     # pk_url_kwarg = 'iris_pk',
     # context_object_name = 'post'
     # form_class = IrisEditForm
@@ -78,41 +68,60 @@ class UpdateView(generic.UpdateView):
     # def get_queryset(self):
         # return Iris.objects.all().filter() 
 
-class IrisUpdate(generic.UpdateView):
+
+class IrisUpdate(SuccessMessageMixin, generic.UpdateView):
+    # print(**kwargs)
     model = Iris 
     fields = ['id', 'sepal_width', 'sepal_length', 'petal_width', 'petal_length', 'classification']
     template_name_suffix = '_update_form'
+    success_url = '/iris/'
+    success_message = 'Iris was successfully updated.'
 
 
-class CreateView(generic.CreateView):
+class FormUpdate(SuccessMessageMixin, generic.edit.FormView):
+    print("form update class")
+    template_name = 'iris/update.html'
+    form_class = IrisEditForm
+    # form_class = IrisKeyForm
+    success_url = '/iris/'
+    success_message = 'Iris was successfully updated'
+
+
+def get_iris(request):
+    from django.forms.models import model_to_dict
+    # pass 
+    pk = request.GET.get('pk')
+    # print('get iris: ', pk)
+    iris = Iris.objects.get(id=pk)
+    # print('iris__: ', iris)
+    iris_json = model_to_dict(iris)
+    # print('iris--: ', iris_json)
+
+
+    # TODO: put the iris object into an update form and return to ajax call
+
+    return JsonResponse(iris_json)
+    # return HttpResponse('ok')
+
+class CreateView(SuccessMessageMixin, generic.CreateView):
     model = Iris 
     fields = ['sepal_width', 'sepal_length', 'petal_width', 'petal_length', 'classification']
-    success_url = '/iris/upload/success/'
+    success_url = '/iris/'
+    success_message = 'Iris was successfully added!'
+
+    # Redirect with success message
+    # msg = 'Iris was successfully created.'
+    # messages.add_message(request, messages.SUCCESS, msg)
+    # return HttpResponseRedirect('/iris/browse')
 
 
-def create(request):
-    return HttpResponse("<h1>Create</h1>")
-
-
-
-def index(request):
-    return HttpResponse("<h1>Index Page</h1>")
-
-
-# class FileUploadView(generic.FormView):
-#     # model = Iris 
-#     template_name = 'iris/upload.html'
-
-
+# TODO: move into class view
 def load_model(data, mode):
     """ 
     Handles different ways data can be loaded to a model
     append: adds new data to existing data
-        - primary key: auto increment id
     replace: clears all data from the model, then loads data
     """
-    print('mode: ', mode)
-    print('data&&: ', data)
 
     if mode == 'append':
         model_load(data)
@@ -122,6 +131,7 @@ def load_model(data, mode):
         model_load(data)
 
     
+# TODO: move into class view
 def model_load(data):
     """ 
     Loads data to a model
@@ -133,6 +143,7 @@ def model_load(data):
         i.save()
 
 
+# TODO: move into class view
 def model_clear():
     """
     Wipes data from a model
@@ -148,6 +159,7 @@ def model_clear():
 
 
 
+# TODO: move into class view
 def handle_uploaded_file(file, name, load=False, mode=None):
     """ 
     Move this to another file for handling files/requests/forms
@@ -156,11 +168,6 @@ def handle_uploaded_file(file, name, load=False, mode=None):
     load: data is written to model
     mode: None if load=F, Append, Replace
     """
-
-    print('load**: ', load)
-    print('mode**: ', mode)
-
-
 
     # current working directory of file
     save_dir = os.path.dirname(os.path.realpath(__file__))
@@ -171,16 +178,10 @@ def handle_uploaded_file(file, name, load=False, mode=None):
     # this use case may want to overwrite files and not retain historical versions
 
     with open(os.path.join(save_dir, name), 'wb+') as destination:
-        # print('destination: ', destination)
-        # print('file: ', file)
-        # print('name: ', name)
-
         for chunk in file.chunks():
             destination.write(chunk)
 
-    print('loading...', file, mode)
     with open(os.path.join(save_dir, name), 'r') as dest:
-        print('opened dest')
         next(dest) # skip over header
         if load:
             # for line in dest: 
@@ -189,21 +190,12 @@ def handle_uploaded_file(file, name, load=False, mode=None):
             
                 
 
-
+# TODO: move into class view
 def FileUploadView(request):
-    # from io import TextIOWrapper
-
     # if this is a POST request we need to process the form data
     if request.method == "POST":
-        # wrap the file to preserve encoding
-        # print('FILES: ', request.FILES['file'])
-        # wrapped_file = TextIOWrapper(request.FILES['file'], encoding=request.encoding)
-
         # create a form instance and populate it with data from the request:
         form = UploadFileForm(request.POST, request.FILES, initial={'action': 'append'})
-        # form = UploadFileForm(request.POST, wrapped_file, initial={'action': 'append'})
-
-        # form.fields['action'].initial = 'append'
 
         # check whether it's valid:
         if form.is_valid():
@@ -216,15 +208,17 @@ def FileUploadView(request):
             messages.add_message(request, messages.SUCCESS, msg)
             return HttpResponseRedirect('/iris/browse')
     else:
-        # if a GET (or any other method) we'll create a blank form
+        # any other method will create a blank form
         form = UploadFileForm()
     return render(request, 'iris/upload.html', {'form': form})
 
 
+# TODO: move into class view
 def upload_success(request):
     return HttpResponse('<h1>File was successfully uploaded</h1>')
 
 
+# TODO: move into class view
 def get_file_contents(request, file_name=None, req=False): 
     """
     Returns the first row of a file, which is intended to be column headings.
@@ -254,6 +248,7 @@ def get_file_contents(request, file_name=None, req=False):
         return JsonResponse({'first_row': first_row})
 
 
+# TODO: move into class view
 def browse_file(request, file_name='iris.csv'):
     """
     Loads the csv file and reads the header record for column names
@@ -279,49 +274,7 @@ def browse_file(request, file_name='iris.csv'):
         if ext == '.csv':
             onlyfiles.append(f)
 
-    print('filename: ', file_name)
-
     return render(request, 'iris/browse.html', {'header': first_row, 'files': onlyfiles})
-
-
-
-
-
-
-# def upload_file(request):
-#     if request.method == 'POST':
-#         form = ModelFormWithFileField(request.POST, request.FILES)
-#         if form.is_valid():
-#             # file is saved
-#             form.save()
-#             return HttpResponseRedirect('/success/url/')
-#     else:
-#         form = ModelFormWithFileField()
-#     return render(request, 'upload.html', {'form': form})
-
-# def FileUpload2View(request):
-#     return HttpResponse('<h1>Upload2</h1>')
-
-
-# def get_name(request):
-#     # if this is a POST request we need to process the form data
-#     if request.method == 'POST':
-#         # create a form instance and populate it with data from the request:
-#         form = NameForm(request.POST)
-#         # check whether it's valid:
-#         if form.is_valid():
-#             # process the data in form.cleaned_data as required
-#             # ...
-#             # redirect to a new URL:
-#             return HttpResponseRedirect('/thanks/')
-
-#     # if a GET (or any other method) we'll create a blank form
-#     else:
-#         form = NameForm()
-#         # return HttpResponse("<h1>get_name else entered</h1>")
-
-
-#     return render(request, 'iris/name.html', {'form': form})
 
 
 
